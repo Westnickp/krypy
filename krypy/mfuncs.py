@@ -151,9 +151,10 @@ class MatrixFunctionSystem:
         self.is_sparse = scipy.sparse.issparse(A)
         self.A = A
         self.mfunc = mfunc
-        self.fA = fA if fA else mfunc(A,  # *args for MatrixFunction?
-                                      is_hermitian=hermitian,
-                                      is_pos_semidefinite=pos_semidefinite)
+        self.fA = (fA if fA is not None
+                   else mfunc(A,  # *args for MatrixFunction?
+                              is_hermitian=hermitian,
+                              is_pos_semidefinite=pos_semidefinite))
         self.diag_only = diag_only
         if diag_only and len(self.fA.shape) > 1:
             self.fA = (numpy.diag(self.fA) if (not self.is_sparse)
@@ -205,9 +206,6 @@ class RankOneUpdate:
                  store_res=True):
         #  Clean params, initialize system
         self.N = b.shape[0]
-        if not isinstance(mfunc_system, MatrixFunctionSystem):
-            raise TypeError("Unrecognized type {}. ".format(type(mfunc_system))
-                            + "Should be a MatrixFunctionSystem.")
         self.mfunc_system = mfunc_system
         self.A = mfunc_system.get_mat()
         self.fA = mfunc_system.get_computed_mfunc()
@@ -217,7 +215,7 @@ class RankOneUpdate:
         c_given = False if c is None or c.size == 0 else True
         self.c = c if c_given else b
         self.sign = sign
-        self.maxiter = maxiter if maxiter else self.N - 1
+        self.maxiter = maxiter if maxiter is not None else min(50, self.N - 1)
         self.rel_tol = rel_tol
         self.d = d
         self.explicit_update = explicit_update
@@ -280,25 +278,25 @@ class RankOneUpdate:
         return Xkf
 
     def _compute_Xkf_nonhermitian(self):
-        k = self.get_iter()
+        iter = self.get_iter()
         U, G, V, H = self.get_arnoldi()
-
         size_b = numpy.linalg.norm(self.b, 2)
         size_c = numpy.linalg.norm(self.c, 2)
-        e1 = numpy.zeros((k, 1))
+        e1 = numpy.zeros((iter, 1))
         e1[0, 0] = 1
-        M1 = G[:k, :k]
-        M2 = (size_b * size_c * e1) @ e1.conj().T
-        M3 = numpy.zeros((k, k))
-        M4 = H[:k, :k] + (size_c * (V[:, :k].conj().T @ self.b)) @ e1.conj().T
+        M1 = G[:iter, :iter]
+        M2 = size_b * size_c * (e1 @ e1.conj().T)
+        M3 = numpy.zeros((iter, iter))
+        M4 = H[:iter, :iter].conj().T + (size_c * (V[:, :iter].conj().T @ self.b)) @ e1.conj().T
         T = numpy.block(
             [[M1, M2],
              [M3, M4]]
         )
         F = self.mfunc(T)
-        print(scipy.linalg.norm(M1 @ M1.T - M1.T @ M1), scipy.linalg.norm(M4 @ M4.T - M4.T @ M4))
-        print(scipy.linalg.norm(T @ T.T - T.T @ T))
-        Xkf = F[:k, k:2*k]
+        print(size_b, size_c)
+        print(e1)
+        print(T)
+        Xkf = F[:iter, iter:2*iter]
         return Xkf
 
     def _estimate_residual(self):
@@ -325,12 +323,13 @@ class RankOneUpdate:
         raise NotImplementedError("No diagonal update defined yet.")
 
     def _full_update(self):
+        iter = self.l_arnoldi.iter
         U, G, V, H = self.get_arnoldi()
         if self.Xkf is None:
             dim = (self.N, self.N)
             return (numpy.zeros(dim) if not self.mfunc_system.is_sparse
                     else scipy.sparse.csc_array(dim))
-        return U[:, :-1] @ self.Xkf @ V[:, :-1].conj().T
+        return U[:, :iter] @ self.Xkf @ V[:, :iter].conj().T
 
     def get_update(self):
         if self.get_iter() < 1:
@@ -370,9 +369,9 @@ class RankOneUpdate:
         s = "RankOneUpdate object\n"
         s += "\n".join(str(self.mfunc_system).split("\n")[1:-3]) + "\n"
         s += "    b: vector with {} elements and size {}\n".format(
-            self.N, scipy.linalg.norm(self.b))
+            self.N, numpy.linalg.norm(self.b, 2))
         s += "    c: vector with {} elements and size {}\n".format(
-            self.N, scipy.linalg.norm(self.c))
+            self.N, numpy.linalg.norm(self.c, 2))
         s += "    b == c: {}\n".format(str(numpy.all(self.b == self.c)))
         s += "    type of update: {}, {}\n".format(
             "additive" if self.sign == 1 else "subtractive",
