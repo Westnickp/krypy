@@ -364,8 +364,10 @@ def test_rank_one_update_sparse(A, f, fA, b, return_object, hermitian, kwargs):
             < 1e-10)
 
 
+_A = get_diagonal_mat(800)/10
+_A[5, 1] = 1
 _large_sparse_timed = [
-    convert_to_sparse(get_diagonal_mat(800)/10),
+    convert_to_sparse(_A),
     krypy.mfuncs.MatrixExponential(),
     None,
     numpy.ones((800, 1)),
@@ -386,7 +388,7 @@ _large_sparse_timed = [
 @pytest.mark.parametrize("A, f, fA, b, return_object, hermitian, "
                          + "kwargs", 
                          [_large_sparse_timed])
-def test_rank_one_update_sparse(A, f, fA, b, return_object, hermitian, kwargs):
+def test_rank_one_update_sparse_timed(A, f, fA, b, return_object, hermitian, kwargs):
     from krypy.mfuncs import rank_one_update
     from krypy.utils import Timer
     c = kwargs.get("c", b)
