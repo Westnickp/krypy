@@ -10,6 +10,7 @@ __all__ = [
     "MatrixFunction",
     "MatrixExponential",
     "MatrixInverse",
+    "MatrixSquare",
     "MatrixFunctionSystem",
     "RankOneUpdate",
     "rank_one_update"
@@ -198,7 +199,6 @@ class MatrixInverse(MatrixFunction):
                                       + " {}".format(self.implementation))
 
     def _evaluate_hermitian(self, A, is_pos_semidefinite=False):
-        """From scipy notes*** NEED TO CITE"""
         if self.implementation == "scipy":
             return scipy.linalg.inv(A)
         elif self.implementation == "hermitian":
@@ -209,6 +209,38 @@ class MatrixInverse(MatrixFunction):
 
     def _evaluate_general_sparse(self, A_sp):
         return scipy.sparse.linalg.inv(A_sp)
+
+    def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
+        return self._evaluate_general_sparse(A_sp)
+
+
+class MatrixSquare(MatrixFunction):
+    """Specialized MatrixFunction for A^2."""
+    f_description = "x**2"
+    def f(x: any) -> any: return x**2
+
+    def __init__(self,
+                 implementation="square"):
+        self.implementation = implementation
+
+    def _evaluate_general(self, A):
+        if self.implementation == "square":
+            return A @ A
+        elif self.implementation == "scipy":
+            return scipy.linalg.funm(A, self.f)
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
+
+    def _evaluate_hermitian(self, A, is_pos_semidefinite):
+        return self._evaluate_general(A)
+
+    def _evaluate_general_sparse(self, A_sp):
+        if self.implementation == "square":
+            return A_sp @ A_sp
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
 
     def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
         return self._evaluate_general_sparse(A_sp)
