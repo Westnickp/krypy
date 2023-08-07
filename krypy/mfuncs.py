@@ -527,11 +527,11 @@ class RankOneUpdate:
         if self.explicit_update is not None:
             return self._compute_exact_residual()
 
-        rel_f = 1 if not self.rel_tol else numpy.linalg.norm(self.Xkf)
+        rel_f = 1 if not self.rel_tol else numpy.linalg.norm(self.Xkf, 2)
         if self.Xkf is None:
             return float("inf")
         elif len(self.oldXkfs) < self.d:
-            return numpy.linalg.norm(self.Xkf) / rel_f
+            return numpy.linalg.norm(self.Xkf, 2) / rel_f
         else:
             k_plus_d = self.Xkf.shape[0]
             k = k_plus_d - self.d
