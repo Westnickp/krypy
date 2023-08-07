@@ -369,7 +369,8 @@ class RankOneUpdate:
                  ortho="dmgs",
                  explicit_update=None,
                  dropping_tol=None,
-                 store_res=True):
+                 store_res=True,
+                 rel_tol=False):
         # set attributes
         self.N = b.shape[0]
         self.mfunc_system = mfunc_system
@@ -388,6 +389,7 @@ class RankOneUpdate:
         self.maxiter = maxiter if maxiter is not None else min(20, self.N - 1)
 
         self.tol = tol
+        self.rel_tol = rel_tol
 
         self.d = d
 
@@ -478,7 +480,8 @@ class RankOneUpdate:
         M1 = G[:iter, :iter]
         M2 = size_b * size_c * (e1 @ e1.conj().T)
         M3 = numpy.zeros((iter, iter))
-        M4 = H[:iter, :iter].conj().T + (size_c * (V[:, :iter].conj().T @ self.b)) @ e1.conj().T
+        M4 = (H[:iter, :iter].conj().T +
+              (size_c * (V[:, :iter].conj().T @ self.b)) @ e1.conj().T)
         T = numpy.block(
             [[M1, M2],
              [M3, M4]]
@@ -492,10 +495,11 @@ class RankOneUpdate:
         if self.explicit_update is not None:
             return self._compute_exact_residual()
 
+        rel_f = 1 if not self.rel_tol else numpy.linalg.norm(self.Xkf)
         if self.Xkf is None:
             return float("inf")
         elif len(self.oldXkfs) < self.d:
-            return numpy.linalg.norm(self.Xkf)
+            return numpy.linalg.norm(self.Xkf) / rel_f
         else:
             k_plus_d = self.Xkf.shape[0]
             k = k_plus_d - self.d
@@ -503,15 +507,20 @@ class RankOneUpdate:
             R = self.Xkf
             R = R - numpy.block([[self.oldXkfs[0],     numpy.zeros((k, d))],
                                  [numpy.zeros((d, k)), numpy.zeros((d, d))]])
-            return numpy.linalg.norm(R, 2)
+            return numpy.linalg.norm(R, 2) / rel_f
 
     def _compute_exact_residual(self):
+        rel_f = 1
         if not self.is_sparse:
+            if self.rel_tol:
+                rel_f = numpy.linalg.norm(self.explicit_update, 2)
             return numpy.linalg.norm(self.get_update()
-                                     - self.explicit_update, 2)
+                                     - self.explicit_update, 2) / rel_f
         else:
+            if self.rel_tol:
+                rel_f = scipy.sparse.linalg.norm(self.explicit_update)
             return scipy.sparse.linalg.norm(self.get_update()
-                                            - self.explicit_update)
+                                            - self.explicit_update) / rel_f
 
     def _diagonal_update(self):
         raise NotImplementedError("No diagonal update defined yet.")
@@ -589,6 +598,7 @@ class RankOneUpdate:
         s += "    maximum iteration: {}\n".format(self.maxiter)
         s = (s + "    error estimate: {}\n".format(self.res[self.get_iter() - 1])
              if self.res is not None and self.get_iter() > 0 else s)
+        s += "    relative error: {}\n".format(self.rel_tol)
         s += "    target tolerance: {}\n".format(self.tol)
         if self.dropping_tol:
             s += "    dropping tolerance: {}\n".format(self.dropping_tol)
