@@ -543,7 +543,8 @@ class RankOneUpdate:
 
     def _compute_exact_residual(self):
         rel_f = 1
-        if not self.is_sparse:
+        if (not self.is_sparse
+            or not scipy.sparse.issparse(self.explicit_update)):
             if self.rel_tol:
                 rel_f = numpy.linalg.norm(self.explicit_update, 2)
             return numpy.linalg.norm(self.get_update()
