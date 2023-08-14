@@ -255,22 +255,26 @@ class MatrixSin(MatrixFunction):
     f_description = "numpy.sin(x)"
     f = numpy.sin
 
-    def __init__(self,
+    def __init__(self, alpha=None,
                  implementation="scipy"):
+        if alpha is not None:
+            self.alpha = alpha
+        else:
+            self.alpha = 1
         self.implementation = implementation
 
     def _evaluate_general(self, A):
         if self.implementation == "scipy":
-            return scipy.linalg.sinm(A)
+            return scipy.linalg.sinm(self.alpha * A)
         else:
             raise NotImplementedError("Unknown evaluation algorithm:"
                                       + " {}".format(self.implementation))
 
     def _evaluate_hermitian(self, A, is_pos_semidefinite=False):
         if self.implementation == "scipy":
-            return scipy.linalg.sinm(A)
+            return scipy.linalg.sinm(self.alpha * A)
         elif self.implementation == "hermitian":
-            super()._evaluate_hermitian(A, is_pos_semidefinite)
+            super()._evaluate_hermitian(self.alpha * A, is_pos_semidefinite)
         else:
             raise NotImplementedError("Unknown evaluation algorithm:"
                                       + " {}".format(self.implementation))
