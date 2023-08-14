@@ -244,6 +244,42 @@ class MatrixSquare(MatrixFunction):
 
     def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
         return self._evaluate_general_sparse(A_sp)
+    
+
+class MatrixSin(MatrixFunction):
+    """Specialized MatrixFunction based on sin function.
+
+    Serves as a wrapper for scipy.linalg.sin and
+    scipy.sparse.linalg.expm functions.
+    """
+    f_description = "numpy.sin(x)"
+    f = numpy.sin
+
+    def __init__(self,
+                 implementation="scipy"):
+        self.implementation = implementation
+
+    def _evaluate_general(self, A):
+        if self.implementation == "scipy":
+            return scipy.linalg.sinm(A)
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
+
+    def _evaluate_hermitian(self, A, is_pos_semidefinite=False):
+        if self.implementation == "scipy":
+            return scipy.linalg.sinm(A)
+        elif self.implementation == "hermitian":
+            super()._evaluate_hermitian(A, is_pos_semidefinite)
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
+
+    def _evaluate_general_sparse(self, A_sp):
+        raise NotImplementedError("Unknown sparse algorithm for matrix sin.")
+
+    def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
+        return self._evaluate_general_sparse(A_sp)
 
 
 class MatrixFunctionSystem:
