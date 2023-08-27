@@ -255,35 +255,68 @@ class MatrixSin(MatrixFunction):
     f_description = "numpy.sin(x)"
     f = numpy.sin
 
-    def __init__(self, alpha=None,
+    def __init__(self,
                  implementation="scipy"):
-        if alpha is not None:
-            self.alpha = alpha
-        else:
-            self.alpha = 1
         self.implementation = implementation
 
     def _evaluate_general(self, A):
         if self.implementation == "scipy":
-            return scipy.linalg.sinm(self.alpha * A)
+            return scipy.linalg.sinm(A)
         else:
             raise NotImplementedError("Unknown evaluation algorithm:"
                                       + " {}".format(self.implementation))
 
     def _evaluate_hermitian(self, A, is_pos_semidefinite=False):
         if self.implementation == "scipy":
-            return scipy.linalg.sinm(self.alpha * A)
+            return scipy.linalg.sinm(A)
         elif self.implementation == "hermitian":
-            super()._evaluate_hermitian(self.alpha * A, is_pos_semidefinite)
+            super()._evaluate_hermitian(A, is_pos_semidefinite)
         else:
             raise NotImplementedError("Unknown evaluation algorithm:"
                                       + " {}".format(self.implementation))
 
     def _evaluate_general_sparse(self, A_sp):
-        raise NotImplementedError("Unknown sparse algorithm for matrix sin.")
+        temp_A = (scipy.sparse.linalg.expm(1j * A_sp) 
+                  - scipy.sparse.linalg.expm(-1j * A_sp))/2j
+        if A_sp.dtype == complex:
+            return temp_A
+        else:
+            return temp_A.real
 
     def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
         return self._evaluate_general_sparse(A_sp)
+
+
+class MatrixPseudoinverse(MatrixFunction):
+    """Class for use with scipy.linalg.pinv"""
+    f_description = "scipy.linalg.pinv"
+
+    def __init__(self, implementation="scipy"):
+        def f(x): return 1/x if x != 0 else 0
+        self.f = f
+        self.implementation = implementation
+
+    def _evaluate_general(self, A):
+        if self.implementation == "scipy":
+            return scipy.linalg.pinv(A)
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
+
+    def _evaluate_hermitian(self, A, is_pos_semidefinite=False):
+        if self.implementation == "scipy":
+            return scipy.linalg.pinvh(A)
+        elif self.implementation == "hermitian":
+            return scipy.linalg.pinvh(A)
+        else:
+            raise NotImplementedError("Unknown evaluation algorithm:"
+                                      + " {}".format(self.implementation))
+
+    def _evaluate_general_sparse(self, A_sp):
+        raise NotImplementedError("No sparse pseudoinverse implementation")
+
+    def _evaluate_hermitian_sparse(self, A_sp, is_pos_semidefinite=False):
+        raise NotImplementedError("No sparse pseudoinverse implementation")
 
 
 class MatrixFunctionSystem:
