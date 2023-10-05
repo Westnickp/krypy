@@ -1,6 +1,6 @@
 # Notice
 
-Below is the documentation from the original KryPy package as forked in 2023 by me (Nicholas West). In this fork, I have fixed some bugs that arise with newer versions of NumPy and added a module mfuncs.py in order to add functionality for matrix function computation. I have written a small report (15 pages) describing the additions to the package as part of my masters degree coursework. I also used the software contained here for the analysis in my masters dissertation. Although not posted here, I am happy to share both reports with any interested parties---please contact me for details.
+Below is the documentation from the original KryPy package as forked in 2023 by me (Nicholas West). In this fork, I have fixed some bugs that arise with newer versions of NumPy and added a module mfuncs.py in order to add functionality for matrix function computation. I have written a small report (15 pages) describing the additions to the package as part of my masters degree coursework. I also used the software contained here for the analysis in my masters dissertation examining low-rank updates to matrix functions via Krylov subspace methods. Please see the 2018 SIAM article by Beckermann, Kressner, and Schweitzer _Low-rank updates of matrix functions_ for the algorithms implemented in mfuncs.py. Although not posted here, I am happy to share both reports with any interested parties---please contact me for details.
 
 # KryPy
 
